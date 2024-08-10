@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-device-pod
+spec:
+  containers:
+    - image: centos:8
+      command:
+        - sleep
+        - 10h
+      imagePullPolicy: IfNotPresent
+      name: my-device-pod
+      resources:
+        limits:
+          plugin-test/qt-test: 1

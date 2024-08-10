@@ -1,6 +1,7 @@
 package manage
 
 import (
+	"google.golang.org/grpc/credentials/insecure"
 	"net"
 	"os"
 	"path"
@@ -110,10 +111,8 @@ func (dpi *devicePlugin) serve() error {
 func (dpi *devicePlugin) register() error {
 	glog.V(3).Infof("%s: Registering the DPI with Kubelet", dpi.Name)
 
-	conn, err := grpc.Dial(pluginapi.KubeletSocket, grpc.WithInsecure(),
-		grpc.WithDialer(func(addr string, timeout time.Duration) (net.Conn, error) {
-			return net.DialTimeout("unix", addr, timeout)
-		}))
+	conn, err := grpc.NewClient("unix://"+pluginapi.KubeletSocket,
+		grpc.WithTransportCredentials(insecure.NewCredentials()))
 	defer conn.Close()
 	if err != nil {
 		glog.Errorf("%s: Could not dial gRPC: %s", dpi.Name, err)

@@ -15,7 +15,7 @@ func main() {
 
 	hw_devices := []string{}
 
-	device_list := os.Getenv("SOCKETCAN_DEVICES")
+	device_list := os.Getenv("devices")
 	if device_list != "" {
 		hw_devices = strings.Split(device_list, ",")
 	}

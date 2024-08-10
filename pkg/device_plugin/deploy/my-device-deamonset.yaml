@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: my-device
+  namespace: kube-system
+  labels:
+    app: my-device
+spec:
+  selector:
+    matchLabels:
+      name: my-device
+  template:
+    metadata:
+      labels:
+        name: my-device
+    spec:
+      containers:
+        - name: my-device
+          image: qtdocker/my-device
+          imagePullPolicy: Always
+          command: [ 'bash', '-c', "/opt/my-device" ]
+          env:
+            - name: devices
+              value: "qt-test"
+          securityContext:
+            privileged: true
+            capabilities:
+              drop: [ "ALL" ]
+          volumeMounts:
+            - name: device-plugin
+              mountPath: /var/lib/kubelet/device-plugins
+      volumes:
+        - name: device-plugin
+          hostPath:
+            path: /var/lib/kubelet/device-plugins
+
