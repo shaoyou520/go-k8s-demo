@@ -1,0 +1,36 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: foos.mycontroller.k8s.io
+  # for more information on the below annotation, please see
+  # https://github.com/kubernetes/enhancements/blob/master/keps/sig-api-machinery/2337-k8s.io-group-protection/README.md
+  annotations:
+    "api-approved.kubernetes.io": "unapproved, experimental-only; please get an approval from Kubernetes API reviewers if you're trying to develop a CRD in the *.k8s.io or *.kubernetes.io groups"
+spec:
+  group: mycontroller.k8s.io #必需group 是自定义资源的 API 组. 必须与 CustomResourceDefinition 的名称匹配
+  versions: # 必须
+  - name: v1 # 必须, name 是版本名称，例如 “v1”、“v2beta1” 等。如果 served 是 true，自定义资源在 /apis/<group>/<version>/... 版本下提供。
+    served: true #必需 served 是用于启用/禁用该版本通过 REST API 提供服务的标志。
+    storage: true # 必需, storage 表示在将自定义资源持久保存到存储时，应使用此版本。有且仅有一个版本的 storage=true。
+    schema: # schema 描述了用于验证、精简和默认此版本的自定义资源的模式。
+      openAPIV3Schema: # openAPIV3Schema 是用于验证和精简的 OpenAPI v3 模式。
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              deploymentName:
+                type: string
+              replicas:
+                type: integer
+                minimum: 1
+                maximum: 10
+          status:
+            type: object
+            properties:
+              availableReplicas:
+                type: integer
+  names: # 必需, names 表示自定义资源的资源和种类名称。
+    kind: Foo
+    plural: foos
+  scope: Namespaced # 必须, 表示自定义资源是集群作用域还是命名空间作用域。允许的值为 Cluster 和 Namespaced。
