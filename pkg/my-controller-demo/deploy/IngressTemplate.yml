@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ${name}
+  namespace: ${namespace}
+  ownerReferences:
+  - apiVersion: v1
+    controller: true #为true时表示对象是一个控制器,如deployment, replicaset, 它管理着其他资源
+    blockOwnerDeletion: true #true 前台删除: 删除主时阻塞等待从删除再删, 默认false,删除主时后台删除从
+    kind: Service
+    name: ${name}
+    uid: ${id}
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: ${name}.shaoyou.store
+    http:
+      paths:
+      - backend:
+          service:
+            name: ${name}
+            port:
+              number: ${port}
+        path: /
+        pathType: Prefix
