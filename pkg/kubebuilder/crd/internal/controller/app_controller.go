@@ -18,6 +18,13 @@ package controller
 
 import (
 	"context"
+	v1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	netv1 "k8s.io/api/networking/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
+	"qt.doamin/App/internal/controller/utils"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -36,6 +43,9 @@ type AppReconciler struct {
 // +kubebuilder:rbac:groups=k8s.qt.qt.domain,resources=apps,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=k8s.qt.qt.domain,resources=apps/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=k8s.qt.qt.domain,resources=apps/finalizers,verbs=update
+// +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=networking.k8s.io,resources=ingresses,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -47,9 +57,94 @@ type AppReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.19.0/pkg/reconcile
 func (r *AppReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = log.FromContext(ctx)
+	logger := log.FromContext(ctx)
+	app := &k8sqtv1.App{}
+	//从缓存中获取app
+	if err := r.Get(ctx, req.NamespacedName, app); err != nil {
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+	//根据app的配置进行处理
+	//1. Deployment的处理
+	deployment := utils.NewDeployment(app)
+	if err := controllerutil.SetControllerReference(app, deployment, r.Scheme); err != nil {
+		return ctrl.Result{}, err
+	}
+	//查找同名deployment
+	d := &v1.Deployment{}
+	if err := r.Get(ctx, req.NamespacedName, d); err != nil {
+		if errors.IsNotFound(err) {
+			if err := r.Create(ctx, deployment); err != nil {
+				logger.Error(err, "create deploy failed")
+				return ctrl.Result{}, err
+			}
+		}
+	} else {
+		if err := r.Update(ctx, deployment); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
 
-	// TODO(user): your logic here
+	//2. Service的处理
+	service := utils.NewService(app)
+	if err := controllerutil.SetControllerReference(app, service, r.Scheme); err != nil {
+		return ctrl.Result{}, err
+	}
+	//查找指定service
+	s := &corev1.Service{}
+	if err := r.Get(ctx, types.NamespacedName{Name: app.Name, Namespace: app.Namespace}, s); err != nil {
+		if errors.IsNotFound(err) && app.Spec.EnableService {
+			if err := r.Create(ctx, service); err != nil {
+				logger.Error(err, "create service failed")
+				return ctrl.Result{}, err
+			}
+		}
+		//Fix: 这里还需要修复一下
+	} else {
+		if app.Spec.EnableService {
+			//Fix: 当前情况下，不需要更新，结果始终都一样
+			if err := r.Update(ctx, service); err != nil {
+				return ctrl.Result{}, err
+			}
+		} else {
+			if err := r.Delete(ctx, s); err != nil {
+				return ctrl.Result{}, err
+			}
+
+		}
+	}
+
+	//3. Ingress的处理,ingress配置可能为空
+	//TODO 使用admission校验该值,如果启用了ingress，那么service必须启用
+	//TODO 使用admission设置默认值,默认为false
+	//Fix: 这里会导致Ingress无法被删除
+	if !app.Spec.EnableService {
+		return ctrl.Result{}, nil
+	}
+	ingress := utils.NewIngress(app)
+	if err := controllerutil.SetControllerReference(app, ingress, r.Scheme); err != nil {
+		return ctrl.Result{}, err
+	}
+	i := &netv1.Ingress{}
+	if err := r.Get(ctx, types.NamespacedName{Name: app.Name, Namespace: app.Namespace}, i); err != nil {
+		if errors.IsNotFound(err) && app.Spec.EnableIngress {
+			if err := r.Create(ctx, ingress); err != nil {
+				logger.Error(err, "create service failed")
+				return ctrl.Result{}, err
+			}
+		}
+		//Fix: 这里还是需要重试一下
+	} else {
+		if app.Spec.EnableIngress {
+			//Fix: 当前情况下，不需要更新，结果始终都一样
+			if err := r.Update(ctx, ingress); err != nil {
+				return ctrl.Result{}, err
+			}
+		} else {
+			if err := r.Delete(ctx, i); err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+	}
 
 	return ctrl.Result{}, nil
 }
@@ -58,5 +153,8 @@ func (r *AppReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 func (r *AppReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&k8sqtv1.App{}).
+		Owns(&v1.Deployment{}).
+		Owns(&netv1.Ingress{}).
+		Owns(&corev1.Service{}).
 		Complete(r)
 }
