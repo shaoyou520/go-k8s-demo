@@ -11,6 +11,46 @@ code-generator提供了以下工具为kubernetes中的资源生成代码:
 其中informer和listers是构建controller的基础,kubebuilder也是基于informer的机制生成的代码.
 
 code-generator还专门整合了这些gen,形成了generate-groups.sh和generate-internal-groups.sh这两个脚本.
+下载代码并安装
+```shell
+   go install code-generator/cmd/{client-gen,lister-gen,informer-gen,deepcopy-gen}
+ ```
+
+### 常用code-generator标记
+
+deepcopy相关标记
+
+      //关闭
+      // +k8s:deepcopy-gen=false
+      //打开
+      // +k8s:deepcopy-gen=true
+      //生成DeepCopyObject方法
+      // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+---
+
+### 常用code-generator标记(续)
+clientset,lister,informer相关标记
+
+     // +genclient
+     // +genclient:noStatus
+     //cluster级别的
+     // +genclient:nonNamespaced
+     // +genclient:noVerbs
+     // +genclient:onlyVerbs=create,delete
+     // +genclient:skipVerbs=get,list,create,update,patch,delete,deleteCollection,watch
+     // +genclient:method=Create,verb=create,result=k8s.io/apimachinery/pkg/apis/meta/v1.Status
+
+---
+
+### 常用code-generator标记(续)
+包级别标记,定义在doc.go
+
+```
+// +k8s:deepcopy-gen=package
+// +groupName=foo.example.com
+package v1
+```
 
 kube_codegen.sh
 ```

@@ -2,10 +2,13 @@ package main
 
 import (
 	"context"
+	"fmt"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
 	"log"
 	clientset "my-crd/client/clientset/versioned"
+	"my-crd/client/informers/externalversions"
 )
 
 func main() {
@@ -31,4 +34,21 @@ func main() {
 		println(foo.Name)
 	}
 
+	factory := externalversions.NewSharedInformerFactoryWithOptions(clientset,
+		0, externalversions.WithNamespace("default"))
+	factory.Mycontroller().V1().Foos().Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: func(obj interface{}) {
+			fmt.Println("add foo")
+		},
+		DeleteFunc: func(obj interface{}) {
+			fmt.Println("delete foo")
+		},
+		UpdateFunc: func(oldObj, newObj interface{}) {
+			fmt.Println("update foo")
+		},
+	})
+	stopch := make(chan struct{})
+	factory.Start(stopch)
+	factory.WaitForCacheSync(stopch)
+	<-stopch
 }
