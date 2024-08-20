@@ -17,4 +17,9 @@ resources:
   kind: App
   path: qt.doamin/App/api/v1
   version: v1
+  webhooks:
+    conversion: true
+    defaulting: true
+    validation: true
+    webhookVersion: v1
 version: "3"
