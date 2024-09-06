@@ -119,7 +119,10 @@ func main() {
 		// https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.19.0/pkg/metrics/filters#WithAuthenticationAndAuthorization
 		metricsServerOptions.FilterProvider = filters.WithAuthenticationAndAuthorization
 	}
-
+	// NewManager 返回一个新的 Manager 用于创建 Controller。
+	// 请注意，如果给定配置中的 ContentType 未设置，则为“application/vnd.kubernetes.protobuf”
+	// 将用于 Kubernetes 所有内置资源，“application/json”用于其他类型
+	// 包括所有 CRD 资源。
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:                 scheme,
 		Metrics:                metricsServerOptions,

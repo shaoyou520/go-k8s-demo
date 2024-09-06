@@ -152,9 +152,20 @@ func (r *AppReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.R
 // SetupWithManager sets up the controller with the Manager.
 func (r *AppReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
+		// 用于定义正在*reconciled*的对象类型，并配置ControllerManagedBy以响应创建/删除/
+		// 通过*reconciled对象*来更新事件。
+		// 这相当于调用
+		// Watches(source.Kind(cache, &Type{}, &handler.EnqueueRequestForObject{})).
 		For(&k8sqtv1.App{}).
+		// Owns 定义由 ControllerManagedBy *generated* 的对象类型，并配置 ControllerManagedBy 来响应
+		// 通过*reconciling the owner object*来创建/删除/更新事件。
+		//
+		// 默认行为仅协调给定类型的第一个控制器类型 OwnerReference。
+		// 使用 Owns(object, builder.MatchEveryOwner) 来reconcile all owners.
+		//相当于 Watches(source.Kind(cache, &Type{}, handler.EnqueueRequestForOwner([...], &OwnerType{}, OnlyControllerOwner()))).
 		Owns(&v1.Deployment{}).
 		Owns(&netv1.Ingress{}).
 		Owns(&corev1.Service{}).
+		//完成应用程序控制器的构建。
 		Complete(r)
 }
