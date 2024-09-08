@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-exporter
+  labels:
+    app: my-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: my-exporter
+  template:
+    metadata:
+      name: my-exporter
+      labels:
+        app: my-exporter
+    spec:
+      containers:
+        - name: my-exporter
+          image: qtdocker/my-exporter:linux_amd64
+          imagePullPolicy: Always
+          command: ["/opt/my-exporter"]
+          ports:
+            - containerPort: 8888
+              protocol: TCP
+      restartPolicy: Always
+      
