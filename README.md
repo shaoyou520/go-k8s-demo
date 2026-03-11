@@ -117,7 +117,8 @@ go run main.go
 6. 启动 Informer 并等待缓存同步
 
 ### 类图
-```mermaid
+
+```
 classDiagram
     class main {
         +main()
