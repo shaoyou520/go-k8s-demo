@@ -172,7 +172,7 @@ go run clientset_demo.go
 
 ### 类图
 
-```mermaid
+```
 classDiagram
     class Foo {
         +metav1.TypeMeta
@@ -255,7 +255,7 @@ go run main.go
 
 ### 类图
 
-```mermaid
+```
 classDiagram
     class MyController {
         -restClient kubernetes.Interface
@@ -344,7 +344,7 @@ go run main.go
 
 ### 类图
 
-```mermaid
+```
 classDiagram
     class Manager {
         -lister ListerInterface
